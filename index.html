@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uppli — Générateur de Signature</title>
+  <meta name="description" content="Générateur de signature email Uppli - Cabinet Conseil Digital & Tech" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script>
+    const { useState, useRef, useCallback, createElement: h } = React;
+
+    const DEFAULTS = {
+      name: "Jean Dupont",
+      title: "Senior Consultant",
+      email: "jean.dupont@uppli.fr",
+      phone: "+33 (0)6 12 34 56 78",
+      linkedin: "https://www.linkedin.com/company/uppli",
+    };
+
+    const FIXED_ADDRESS = "33 rue Lafayette, 75009 Paris";
+    const C = {
+      teal: "#00d4aa",
+      tealDark: "#00b894",
+      purple: "#9b59b6",
+      purpleBright: "#a855f7",
+      purpleGrad1: "#9b59b6",
+      purpleGrad2: "#7c3aed",
+      navy: "#0a0f1a",
+      navyLight: "#111827",
+      navyCard: "#1a2236",
+      text: "#1a1a2e",
+      muted: "#7a8ba5",
+      border: "#2a3550",
+    };
+
+    function sigHTML(d) {
+      return '<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:580px;border-collapse:collapse;"><tr><td style="padding:0;"><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td style="height:3px;background:linear-gradient(90deg,'+C.teal+','+C.purple+');font-size:1px;line-height:1px;">&nbsp;</td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td width="4" style="background-color:'+C.teal+';font-size:1px;line-height:1px;">&nbsp;</td><td style="padding:18px 0 18px 18px;vertical-align:top;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-size:18px;font-weight:bold;color:'+C.text+';line-height:1.2;padding-bottom:2px;">'+(d.name||"Prénom Nom")+'</td></tr><tr><td style="font-size:12px;color:'+C.purple+';letter-spacing:0.3px;padding-bottom:12px;font-weight:600;">'+(d.title||"Titre")+'</td></tr></table><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;"><tr><td style="height:1px;width:32px;background:linear-gradient(90deg,'+C.teal+','+C.purple+');font-size:1px;line-height:1px;">&nbsp;</td></tr></table><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-size:11px;color:#888;padding-bottom:3px;line-height:1.5;word-break:break-all;">✉&nbsp;&nbsp;<a href="mailto:'+(d.email)+'" style="color:'+C.text+';text-decoration:none;word-break:break-all;">'+(d.email||"email@uppli.fr")+'</a></td></tr><tr><td style="font-size:12px;color:#888;padding-bottom:3px;line-height:1.5;">✆&nbsp;&nbsp;<a href="tel:'+((d.phone||"").replace(/[^+0-9]/g,""))+'" style="color:'+C.text+';text-decoration:none;">'+(d.phone||"+33...")+'</a></td></tr><tr><td style="font-size:12px;color:#888;padding-bottom:3px;line-height:1.5;">⌂&nbsp;&nbsp;<a href="https://www.uppli.fr" style="color:'+C.tealDark+';text-decoration:none;font-weight:bold;">www.uppli.fr</a></td></tr><tr><td style="font-size:11px;color:#aaa;padding-top:1px;line-height:1.5;">📍&nbsp;&nbsp;'+FIXED_ADDRESS+'</td></tr></table></td><td width="170" style="padding:18px 20px 18px 12px;vertical-align:middle;text-align:right;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;float:right;"><tr><td style="text-align:right;padding-bottom:2px;"><span style="font-size:30px;font-weight:900;color:'+C.text+';letter-spacing:-0.5px;font-family:Impact,\'Arial Narrow\',Arial,sans-serif;">Upp</span><span style="font-size:30px;font-weight:900;color:'+C.purple+';letter-spacing:-0.5px;font-family:Impact,\'Arial Narrow\',Arial,sans-serif;">li</span></td></tr><tr><td style="text-align:right;padding-bottom:12px;"><span style="font-size:8px;color:#aaa;letter-spacing:1.8px;text-transform:uppercase;white-space:nowrap;">Conseil Digital &amp; Tech</span></td></tr><tr><td style="text-align:right;">'+(d.linkedin?'<a href="'+d.linkedin+'" style="display:inline-block;width:24px;height:24px;background-color:'+C.purple+';border-radius:5px;text-align:center;line-height:24px;text-decoration:none;color:#fff;font-size:11px;font-weight:bold;" title="LinkedIn">in</a>':"")+'</td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:7px 18px;background-color:#faf8fc;border-top:1px solid #efe8f4;"><span style="font-size:9px;color:#b8a5c8;line-height:1.4;letter-spacing:0.3px;">Conseil &amp; Stratégie · Développement · Data &amp; IA · Cloud &amp; DevOps · CRM &amp; ITSM</span></td></tr></table></td></tr></table>';
+    }
+
+    function Field(props) {
+      return h("div", { style: { marginBottom: 14 } },
+        h("label", {
+          style: {
+            display: "block", fontSize: 10, fontWeight: 700,
+            letterSpacing: "1.5px", textTransform: "uppercase",
+            color: C.muted, marginBottom: 5,
+          }
+        }, props.label),
+        h("input", {
+          type: "text", value: props.value, placeholder: props.placeholder,
+          onChange: function(e) { props.onChange(e.target.value); },
+          style: {
+            width: "100%", padding: "10px 14px", fontSize: 13,
+            fontFamily: "'DM Sans', Arial, sans-serif",
+            border: "1.5px solid " + C.border, borderRadius: 8,
+            outline: "none", background: C.navyLight, color: "#e0e8f0",
+            transition: "border-color 0.25s, box-shadow 0.25s",
+            boxSizing: "border-box",
+          },
+          onFocus: function(e) {
+            e.target.style.borderColor = C.purpleBright;
+            e.target.style.boxShadow = "0 0 0 3px " + C.purpleBright + "20";
+          },
+          onBlur: function(e) {
+            e.target.style.borderColor = C.border;
+            e.target.style.boxShadow = "none";
+          },
+        })
+      );
+    }
+
+    function App() {
+      var _data = useState(DEFAULTS), data = _data[0], setData = _data[1];
+      var _copied = useState(false), copied = _copied[0], setCopied = _copied[1];
+      var _ct = useState(""), copiedType = _ct[0], setCopiedType = _ct[1];
+      var previewRef = useRef(null);
+
+      function set(k) {
+        return function(v) { setData(function(p) { var n = {}; for (var x in p) n[x] = p[x]; n[k] = v; return n; }); };
+      }
+
+      function flash(type) {
+        setCopied(true); setCopiedType(type);
+        setTimeout(function() { setCopied(false); setCopiedType(""); }, 2500);
+      }
+
+      function doCopy() {
+        if (!previewRef.current) return;
+        var range = document.createRange();
+        range.selectNodeContents(previewRef.current);
+        var sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(range);
+        document.execCommand("copy");
+        sel.removeAllRanges();
+        flash("gmail");
+      }
+
+      function copyHTML() {
+        var html = sigHTML(data);
+        var blob = new Blob([html], { type: "text/html" });
+        var plain = new Blob([html], { type: "text/plain" });
+        navigator.clipboard
+          .write([new ClipboardItem({ "text/html": blob, "text/plain": plain })])
+          .then(function() { flash("html"); });
+      }
+
+      return h("div", {
+        style: {
+          minHeight: "100vh",
+          background: "radial-gradient(ellipse at 30% -10%, #1a1035 0%, " + C.navy + " 55%, #06090f 100%)",
+          fontFamily: "'DM Sans', Arial, sans-serif",
+          color: "#e0e8f0", overflow: "hidden", position: "relative",
+        }
+      },
+        // Grid
+        h("div", {
+          style: {
+            position: "absolute", inset: 0,
+            backgroundImage: "linear-gradient(" + C.purple + "05 1px, transparent 1px), linear-gradient(90deg, " + C.purple + "05 1px, transparent 1px)",
+            backgroundSize: "50px 50px", pointerEvents: "none",
+          }
+        }),
+        // Glow purple
+        h("div", {
+          style: {
+            position: "absolute", top: -250, left: "40%", width: 600, height: 600,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, " + C.purple + "12 0%, transparent 60%)",
+            pointerEvents: "none",
+          }
+        }),
+        // Glow teal
+        h("div", {
+          style: {
+            position: "absolute", bottom: -150, right: -80, width: 400, height: 400,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, " + C.teal + "0a 0%, transparent 60%)",
+            pointerEvents: "none",
+          }
+        }),
+        // Content
+        h("div", {
+          style: {
+            position: "relative", zIndex: 1, maxWidth: 960,
+            margin: "0 auto", padding: "36px 20px",
+          }
+        },
+          // Header
+          h("div", { style: { textAlign: "center", marginBottom: 34 } },
+            h("div", { style: { marginBottom: 6 } },
+              h("span", {
+                style: {
+                  fontSize: 30, fontWeight: 900, letterSpacing: -0.5,
+                  color: "#fff", fontFamily: "Impact, 'Arial Narrow', Arial, sans-serif",
+                }
+              }, "Upp"),
+              h("span", {
+                style: {
+                  fontSize: 30, fontWeight: 900, letterSpacing: -0.5,
+                  color: C.purpleBright, fontFamily: "Impact, 'Arial Narrow', Arial, sans-serif",
+                }
+              }, "li")
+            ),
+            h("div", {
+              style: {
+                display: "inline-block", height: 2, width: 50,
+                background: "linear-gradient(90deg, " + C.teal + ", " + C.purple + ")",
+                marginBottom: 10, borderRadius: 1,
+              }
+            }),
+            h("p", {
+              style: {
+                fontSize: 12, color: C.purpleBright, margin: 0,
+                letterSpacing: 2.5, textTransform: "uppercase", fontWeight: 600,
+              }
+            }, "Générateur de signature")
+          ),
+          // Grid layout
+          h("div", {
+            style: {
+              display: "grid",
+              gridTemplateColumns: "310px minmax(0, 1fr)",
+              gap: 24, alignItems: "start",
+            }
+          },
+            // Form
+            h("div", {
+              style: {
+                background: "linear-gradient(165deg, " + C.navyCard + " 0%, " + C.navyLight + " 100%)",
+                border: "1px solid " + C.border, borderRadius: 14,
+                padding: "22px 20px",
+              }
+            },
+              h("div", {
+                style: {
+                  display: "flex", alignItems: "center", gap: 8,
+                  marginBottom: 18, paddingBottom: 12,
+                  borderBottom: "1px solid " + C.border,
+                }
+              },
+                h("div", {
+                  style: {
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "linear-gradient(135deg, " + C.teal + ", " + C.purple + ")",
+                    boxShadow: "0 0 8px " + C.purple + "60",
+                  }
+                }),
+                h("span", {
+                  style: {
+                    fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+                    textTransform: "uppercase", color: C.purpleBright,
+                  }
+                }, "Informations")
+              ),
+              h(Field, { label: "Nom complet", value: data.name, onChange: set("name"), placeholder: "Prénom Nom" }),
+              h(Field, { label: "Poste", value: data.title, onChange: set("title"), placeholder: "Partner Consultant" }),
+              h(Field, { label: "Email", value: data.email, onChange: set("email"), placeholder: "prenom.nom@uppli.fr" }),
+              h(Field, { label: "Téléphone", value: data.phone, onChange: set("phone"), placeholder: "+33 (0)6 ..." }),
+              h(Field, { label: "LinkedIn", value: data.linkedin, onChange: set("linkedin"), placeholder: "https://linkedin.com/in/..." }),
+              // Fixed address
+              h("div", {
+                style: {
+                  marginTop: 6, padding: "10px 14px",
+                  background: C.purple + "08", border: "1px solid " + C.purple + "18",
+                  borderRadius: 8, fontSize: 11, color: C.muted,
+                }
+              },
+                h("span", {
+                  style: {
+                    color: C.purpleBright, fontWeight: 700, fontSize: 10,
+                    letterSpacing: 1, textTransform: "uppercase",
+                  }
+                }, "Adresse fixe"),
+                h("br"),
+                h("span", { style: { color: "#8899aa" } }, FIXED_ADDRESS)
+              )
+            ),
+            // Preview side
+            h("div", null,
+              h("div", {
+                style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }
+              },
+                h("div", { style: { width: 8, height: 8, borderRadius: "50%", background: C.muted } }),
+                h("span", {
+                  style: {
+                    fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+                    textTransform: "uppercase", color: C.muted,
+                  }
+                }, "Aperçu")
+              ),
+              // Email mock
+              h("div", {
+                style: {
+                  background: "#fff", borderRadius: 12, overflow: "hidden",
+                  boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px " + C.purple + "12",
+                }
+              },
+                // macOS bar
+                h("div", {
+                  style: {
+                    background: "#f0f2f5", padding: "10px 14px",
+                    borderBottom: "1px solid #e4e6ea",
+                    display: "flex", alignItems: "center", gap: 7,
+                  }
+                },
+                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#ff5f57" } }),
+                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#febc2e" } }),
+                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#28c840" } }),
+                  h("span", { style: { marginLeft: 12, fontSize: 11, color: "#aaa", fontFamily: "monospace" } }, "Nouveau message")
+                ),
+                // Email fields
+                h("div", {
+                  style: { padding: "10px 20px", borderBottom: "1px solid #f0f0f0", fontSize: 12, color: "#bbb" }
+                },
+                  h("div", { style: { marginBottom: 3 } },
+                    h("span", { style: { color: "#ccc" } }, "À : "),
+                    h("span", { style: { color: "#555" } }, "client@entreprise.com")
+                  ),
+                  h("div", null,
+                    h("span", { style: { color: "#ccc" } }, "Objet : "),
+                    h("span", { style: { color: "#555" } }, "Proposition d'accompagnement")
+                  )
+                ),
+                // Body
+                h("div", { style: { padding: "18px 20px 12px" } },
+                  h("p", { style: { fontSize: 13, color: "#555", margin: "0 0 2px", lineHeight: 1.7 } }, "Bonjour,"),
+                  h("p", { style: { fontSize: 13, color: "#ccc", margin: "0 0 16px", lineHeight: 1.7 } }, "Suite à notre échange, je vous adresse..."),
+                  h("p", { style: { fontSize: 13, color: "#555", margin: "0 0 14px" } }, "Cordialement,"),
+                  h("div", {
+                    ref: previewRef,
+                    style: { borderTop: "1px solid #eee", paddingTop: 14 },
+                    dangerouslySetInnerHTML: { __html: sigHTML(data) },
+                  })
+                )
+              ),
+              // Buttons
+              h("div", { style: { display: "flex", gap: 10, marginTop: 18 } },
+                h("button", {
+                  onClick: doCopy,
+                  style: {
+                    flex: 1, padding: "13px 20px", fontSize: 13, fontWeight: 700,
+                    fontFamily: "'DM Sans', Arial, sans-serif", color: "#fff",
+                    background: "linear-gradient(135deg, " + C.purpleGrad1 + ", " + C.purpleGrad2 + ")",
+                    border: "none", borderRadius: 10, cursor: "pointer",
+                    letterSpacing: 0.5, transition: "transform 0.15s, box-shadow 0.15s",
+                    boxShadow: "0 4px 24px " + C.purple + "40",
+                  },
+                  onMouseEnter: function(e) {
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow = "0 8px 32px " + C.purple + "60";
+                  },
+                  onMouseLeave: function(e) {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = "0 4px 24px " + C.purple + "40";
+                  },
+                }, copied && copiedType === "gmail" ? "✓  Copié !" : "Copier pour Gmail"),
+                h("button", {
+                  onClick: copyHTML,
+                  style: {
+                    padding: "13px 18px", fontSize: 13, fontWeight: 600,
+                    fontFamily: "'DM Sans', Arial, sans-serif", color: C.muted,
+                    background: "transparent", border: "1.5px solid " + C.border,
+                    borderRadius: 10, cursor: "pointer",
+                    transition: "border-color 0.2s, color 0.2s",
+                  },
+                  onMouseEnter: function(e) { e.target.style.borderColor = C.teal; e.target.style.color = C.teal; },
+                  onMouseLeave: function(e) { e.target.style.borderColor = C.border; e.target.style.color = C.muted; },
+                }, copied && copiedType === "html" ? "✓ Copié" : "</>  HTML")
+              ),
+              // Instructions
+              h("div", {
+                style: {
+                  marginTop: 14, padding: "12px 16px",
+                  background: C.navyCard, border: "1px solid " + C.border,
+                  borderRadius: 10, fontSize: 12, color: C.muted, lineHeight: 1.6,
+                }
+              },
+                h("span", { style: { color: C.teal, fontWeight: 700, fontSize: 11 } }, "GMAIL"),
+                " → Paramètres → Général → Signature → Colle avec Ctrl+V → Enregistrer"
+              )
+            )
+          )
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
