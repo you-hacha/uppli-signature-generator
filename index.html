@@ -1,361 +1,521 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Uppli — Générateur de Signature</title>
-  <meta name="description" content="Générateur de signature email Uppli - Cabinet Conseil Digital & Tech" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', Arial, sans-serif; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyseur de Cadence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --card: #111827;
+    --border: #1e293b;
+    --accent: #22d3ee;
+    --accent-dim: rgba(34,211,238,0.15);
+    --warn: #f59e0b;
+    --success: #10b981;
+    --success-dim: rgba(16,185,129,0.15);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --pause: #ef4444;
+    --orange: #f97316;
+    --blue: #3b82f6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    padding: 20px 16px;
+    min-height: 100vh;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  .tag { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; font-weight: 600; margin-bottom: 6px; }
+  h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+  .header { margin-bottom: 28px; }
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+  .upload-zone:hover, .upload-zone.dragging {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .upload-zone .icon { font-size: 18px; margin-bottom: 4px; }
+  .upload-zone .hint { color: var(--text-dim); font-size: 12px; }
+  .upload-zone .done { color: var(--accent); font-weight: 600; }
+  .upload-zone .change { color: var(--text-dim); font-size: 11px; margin-left: 8px; }
+  .slider-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .slider-label { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .slider-value { font-size: 22px; font-weight: 700; color: var(--warn); }
+  .slider-value .unit { font-size: 11px; color: var(--text-dim); font-weight: 400; margin-left: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--warn); cursor: pointer; height: 6px; }
+  .slider-bounds { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat-card { border-radius: 12px; padding: 14px 18px; flex: 1 1 130px; min-width: 130px; }
+  .stat-card .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; font-weight: 600; }
+  .stat-card .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-card .sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .moyenne-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+  }
+  .moyenne-chart-wrap { flex: 1; min-width: 0; }
+  .moyenne-kpis { display: flex; flex-direction: column; gap: 12px; min-width: 160px; }
+  .kpi-box {
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .kpi-box .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 8px; }
+  .kpi-box .kpi-value { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .kpi-box .kpi-sub { font-size: 10px; margin-top: 4px; opacity: 0.7; }
+  .section-title { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .user-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .user-name { font-size: 16px; font-weight: 700; color: var(--accent); }
+  .user-time { font-size: 11px; color: var(--text-dim); margin-left: 10px; }
+  .cadence-badge {
+    background: var(--success-dim);
+    color: var(--success);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .cadence-badge .unit { font-size: 10px; font-weight: 400; }
+  .chart-box {
+    background: #0d1220;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 16px 16px 8px;
+    margin-top: 14px;
+  }
+  .chart-title { font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 8px; padding-bottom: 4px; }
+  .chart-legend span { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .error-box { color: var(--pause); font-size: 13px; padding: 10px 14px; background: rgba(239,68,68,0.08); border-radius: 8px; margin-bottom: 16px; }
+  .loading-bar { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center; }
+  .loading-bar .spinner { color: var(--accent); font-size: 13px; }
+  .file-info { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+  #results { display: none; }
+  canvas { max-height: 200px; }
+  @media (max-width: 640px) {
+    .moyenne-section { flex-direction: column; }
+    .moyenne-kpis { flex-direction: row; min-width: 0; }
+    .kpi-box .kpi-value { font-size: 28px; }
+  }
+</style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script>
-    const { useState, useRef, useCallback, createElement: h } = React;
+<div class="container">
+  <div class="header">
+    <div class="tag">Analyseur</div>
+    <h1>Cadence <span>lignes/min</span></h1>
+    <p class="subtitle">Importe un export SAP, ajuste le seuil de pause, visualise la productivité.</p>
+  </div>
 
-    const DEFAULTS = {
-      name: "Jean Dupont",
-      title: "Senior Consultant",
-      email: "jean.dupont@uppli.fr",
-      phone: "+33 (0)6 12 34 56 78",
-      linkedin: "https://www.linkedin.com/company/uppli",
-    };
+  <div class="upload-zone" id="uploadZone">
+    <div id="uploadContent">
+      <div class="icon">↑</div>
+      <div class="hint">Glisse ton .xlsx ici ou clique pour sélectionner</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+  </div>
 
-    const FIXED_ADDRESS = "33 rue Lafayette, 75009 Paris";
-    const C = {
-      teal: "#00d4aa",
-      tealDark: "#00b894",
-      purple: "#9b59b6",
-      purpleBright: "#a855f7",
-      purpleGrad1: "#9b59b6",
-      purpleGrad2: "#7c3aed",
-      navy: "#0a0f1a",
-      navyLight: "#111827",
-      navyCard: "#1a2236",
-      text: "#1a1a2e",
-      muted: "#7a8ba5",
-      border: "#2a3550",
-    };
+  <div id="errorBox" style="display:none"></div>
 
-    function sigHTML(d) {
-      return '<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;max-width:580px;border-collapse:collapse;"><tr><td style="padding:0;"><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td style="height:3px;background:linear-gradient(90deg,'+C.teal+','+C.purple+');font-size:1px;line-height:1px;">&nbsp;</td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td width="4" style="background-color:'+C.teal+';font-size:1px;line-height:1px;">&nbsp;</td><td style="padding:18px 0 18px 18px;vertical-align:top;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-size:18px;font-weight:bold;color:'+C.text+';line-height:1.2;padding-bottom:2px;">'+(d.name||"Prénom Nom")+'</td></tr><tr><td style="font-size:12px;color:'+C.purple+';letter-spacing:0.3px;padding-bottom:12px;font-weight:600;">'+(d.title||"Titre")+'</td></tr></table><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:10px;"><tr><td style="height:1px;width:32px;background:linear-gradient(90deg,'+C.teal+','+C.purple+');font-size:1px;line-height:1px;">&nbsp;</td></tr></table><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-size:11px;color:#888;padding-bottom:3px;line-height:1.5;word-break:break-all;">✉&nbsp;&nbsp;<a href="mailto:'+(d.email)+'" style="color:'+C.text+';text-decoration:none;word-break:break-all;">'+(d.email||"email@uppli.fr")+'</a></td></tr><tr><td style="font-size:12px;color:#888;padding-bottom:3px;line-height:1.5;">✆&nbsp;&nbsp;<a href="tel:'+((d.phone||"").replace(/[^+0-9]/g,""))+'" style="color:'+C.text+';text-decoration:none;">'+(d.phone||"+33...")+'</a></td></tr><tr><td style="font-size:12px;color:#888;padding-bottom:3px;line-height:1.5;">⌂&nbsp;&nbsp;<a href="https://www.uppli.fr" style="color:'+C.tealDark+';text-decoration:none;font-weight:bold;">www.uppli.fr</a></td></tr><tr><td style="font-size:11px;color:#aaa;padding-top:1px;line-height:1.5;">📍&nbsp;&nbsp;'+FIXED_ADDRESS+'</td></tr></table></td><td width="170" style="padding:18px 20px 18px 12px;vertical-align:middle;text-align:right;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;float:right;"><tr><td style="text-align:right;padding-bottom:2px;"><span style="font-size:30px;font-weight:900;color:'+C.text+';letter-spacing:-0.5px;font-family:Impact,\'Arial Narrow\',Arial,sans-serif;">Upp</span><span style="font-size:30px;font-weight:900;color:'+C.purple+';letter-spacing:-0.5px;font-family:Impact,\'Arial Narrow\',Arial,sans-serif;">li</span></td></tr><tr><td style="text-align:right;padding-bottom:12px;"><span style="font-size:8px;color:#aaa;letter-spacing:1.8px;text-transform:uppercase;white-space:nowrap;">Conseil Digital &amp; Tech</span></td></tr><tr><td style="text-align:right;">'+(d.linkedin?'<a href="'+d.linkedin+'" style="display:inline-block;width:24px;height:24px;background-color:'+C.purple+';border-radius:5px;text-align:center;line-height:24px;text-decoration:none;color:#fff;font-size:11px;font-weight:bold;" title="LinkedIn">in</a>':"")+'</td></tr></table></td></tr></table><table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:7px 18px;background-color:#faf8fc;border-top:1px solid #efe8f4;"><span style="font-size:9px;color:#b8a5c8;line-height:1.4;letter-spacing:0.3px;">Conseil &amp; Stratégie · Développement · Data &amp; IA · Cloud &amp; DevOps · CRM &amp; ITSM</span></td></tr></table></td></tr></table>';
+  <div id="results">
+    <div class="slider-card">
+      <div class="slider-header">
+        <span class="slider-label">Seuil de pause</span>
+        <span class="slider-value"><span id="thresholdValue">30</span>s<span class="unit" id="thresholdUnit"></span></span>
+      </div>
+      <input type="range" id="thresholdSlider" min="5" max="300" step="5" value="30">
+      <div class="slider-bounds"><span>5s (strict)</span><span>5min (souple)</span></div>
+    </div>
+
+    <div class="moyenne-section" id="moyenneSection">
+      <div class="moyenne-chart-wrap">
+        <div class="section-title">Cadence par utilisateur (lignes/min)</div>
+        <canvas id="moyenneChart" height="200"></canvas>
+      </div>
+      <div class="moyenne-kpis">
+        <div class="kpi-box" style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);">
+          <div class="kpi-label" style="color:var(--blue)">Nb lignes/min</div>
+          <div class="kpi-value" style="color:var(--blue)" id="kpiMoyIndiv">—</div>
+          <div class="kpi-sub" style="color:var(--blue)">Moy. individuelle</div>
+        </div>
+        <div class="kpi-box" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);">
+          <div class="kpi-label" style="color:var(--orange)">Moyenne équipe</div>
+          <div class="kpi-value" style="color:var(--orange)" id="kpiMoyEquipe">—</div>
+          <div class="kpi-sub" style="color:var(--orange)">Pondérée par lignes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row" id="globalStats"></div>
+    <div id="usersContainer"></div>
+  </div>
+</div>
+
+<script>
+// ── Helpers ──
+function parseTime(val) {
+  if (val == null || val === '') return null;
+  if (typeof val === 'number') return Math.round(val * 86400);
+  const s = String(val).trim();
+  const m = s.match(/(\d{1,2}):(\d{2}):(\d{2})/);
+  if (m) return parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3]);
+  if (s.includes('T') || s.includes('1899') || s.includes('1900')) {
+    try { const d = new Date(s); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); } catch(e) {}
+  }
+  return null;
+}
+
+const SKIP = new Set(['résultat', 'résultat global', 'utilisateur', 'heure confirmation', 'atelier', 'expedition']);
+function isUserCell(val) {
+  if (val == null) return false;
+  const s = String(val).trim();
+  if (s === '' || SKIP.has(s.toLowerCase()) || !isNaN(Number(s))) return false;
+  return true;
+}
+
+function fmtDuration(secs) {
+  if (secs < 60) return Math.round(secs) + 's';
+  if (secs < 3600) return (secs / 60).toFixed(1) + ' min';
+  const h = Math.floor(secs / 3600);
+  const m = Math.round((secs % 3600) / 60);
+  return h + 'h' + String(m).padStart(2, '0');
+}
+
+function fmtTime(t) {
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  return h + ':' + String(m).padStart(2, '0');
+}
+
+function makeStatCard(label, value, sub, color) {
+  return '<div class="stat-card" style="background:' + color + '14;border:1px solid ' + color + '30">' +
+    '<div class="label">' + label + '</div>' +
+    '<div class="value" style="color:' + color + '">' + value + '</div>' +
+    (sub ? '<div class="sub">' + sub + '</div>' : '') +
+  '</div>';
+}
+
+// ── State ──
+let parsedUsers = [];
+let charts = {};
+
+// ── Parse (handles BOTH formats) ──
+// Format A: user name on every row (new format)
+// Format B: user name only on first row, then empty (old format)
+function parseExcel(data) {
+  const wb = XLSX.read(new Uint8Array(data), { type: 'array', raw: true });
+  const sheetName = wb.SheetNames.find(n => !n.startsWith('_com.sap')) || wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: null, raw: true });
+
+  // Collect all data rows grouped by user (ordered by appearance)
+  const userMap = new Map(); // preserves insertion order
+  let currentUser = null;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const col0 = row[0];
+    const col1 = row[1];
+
+    // Detect user from col0
+    if (isUserCell(col0)) {
+      currentUser = String(col0).trim();
     }
 
-    function Field(props) {
-      return h("div", { style: { marginBottom: 14 } },
-        h("label", {
-          style: {
-            display: "block", fontSize: 10, fontWeight: 700,
-            letterSpacing: "1.5px", textTransform: "uppercase",
-            color: C.muted, marginBottom: 5,
-          }
-        }, props.label),
-        h("input", {
-          type: "text", value: props.value, placeholder: props.placeholder,
-          onChange: function(e) { props.onChange(e.target.value); },
-          style: {
-            width: "100%", padding: "10px 14px", fontSize: 13,
-            fontFamily: "'DM Sans', Arial, sans-serif",
-            border: "1.5px solid " + C.border, borderRadius: 8,
-            outline: "none", background: C.navyLight, color: "#e0e8f0",
-            transition: "border-color 0.25s, box-shadow 0.25s",
-            boxSizing: "border-box",
-          },
-          onFocus: function(e) {
-            e.target.style.borderColor = C.purpleBright;
-            e.target.style.boxShadow = "0 0 0 3px " + C.purpleBright + "20";
-          },
-          onBlur: function(e) {
-            e.target.style.borderColor = C.border;
-            e.target.style.boxShadow = "none";
-          },
-        })
-      );
+    // Skip if no active user or col1 is a keyword
+    if (!currentUser) continue;
+    if (col1 == null) continue;
+    const col1Str = String(col1).trim().toLowerCase();
+    if (col1Str === 'résultat' || col1Str === 'heure confirmation') continue;
+
+    // Parse time
+    const t = parseTime(col1);
+    if (t !== null && t > 0 && t < 86400) {
+      if (!userMap.has(currentUser)) userMap.set(currentUser, []);
+      userMap.get(currentUser).push(t);
+    }
+  }
+
+  // Convert to array
+  const users = [];
+  for (const [name, times] of userMap) {
+    if (times.length > 1) {
+      // Sort times to handle any ordering issues
+      times.sort((a, b) => a - b);
+      users.push({ name, times });
+    }
+  }
+  return users;
+}
+
+function computeStats(users, threshold) {
+  return users.map(u => {
+    const { times } = u;
+    const deltas = [];
+    let activeSeconds = 0, pauseSeconds = 0, pauseCount = 0;
+
+    for (let i = 1; i < times.length; i++) {
+      const d = times[i] - times[i - 1];
+      if (d < 0) continue;
+      deltas.push(d);
+      if (d <= threshold) { activeSeconds += d; }
+      else { pauseSeconds += d; pauseCount++; }
     }
 
-    function App() {
-      var _data = useState(DEFAULTS), data = _data[0], setData = _data[1];
-      var _copied = useState(false), copied = _copied[0], setCopied = _copied[1];
-      var _ct = useState(""), copiedType = _ct[0], setCopiedType = _ct[1];
-      var previewRef = useRef(null);
+    const activeMin = activeSeconds / 60;
+    const cadence = activeMin > 0 ? times.length / activeMin : 0;
 
-      function set(k) {
-        return function(v) { setData(function(p) { var n = {}; for (var x in p) n[x] = p[x]; n[k] = v; return n; }); };
-      }
+    const bucketDefs = [
+      { label: '0-5s', min: 0, max: 5 },
+      { label: '5-10s', min: 5, max: 10 },
+      { label: '10-20s', min: 10, max: 20 },
+      { label: '20-30s', min: 20, max: 30 },
+      { label: '30-60s', min: 30, max: 60 },
+      { label: '1-2m', min: 60, max: 120 },
+      { label: '2-5m', min: 120, max: 300 },
+      { label: '5m+', min: 300, max: Infinity },
+    ];
+    const buckets = bucketDefs.map(b => ({
+      ...b,
+      count: b.min === 0
+        ? deltas.filter(d => d >= 0 && d <= b.max).length
+        : deltas.filter(d => d > b.min && d <= b.max).length
+    }));
 
-      function flash(type) {
-        setCopied(true); setCopiedType(type);
-        setTimeout(function() { setCopied(false); setCopiedType(""); }, 2500);
-      }
+    return { name: u.name, lines: times.length, firstTime: times[0], lastTime: times[times.length - 1], activeSeconds, pauseSeconds, pauseCount, cadence, buckets };
+  });
+}
 
-      function doCopy() {
-        if (!previewRef.current) return;
-        var range = document.createRange();
-        range.selectNodeContents(previewRef.current);
-        var sel = window.getSelection();
-        sel.removeAllRanges(); sel.addRange(range);
-        document.execCommand("copy");
-        sel.removeAllRanges();
-        flash("gmail");
-      }
+// ── Render ──
+function render(threshold) {
+  const stats = computeStats(parsedUsers, threshold);
 
-      function copyHTML() {
-        var html = sigHTML(data);
-        var blob = new Blob([html], { type: "text/html" });
-        var plain = new Blob([html], { type: "text/plain" });
-        navigator.clipboard
-          .write([new ClipboardItem({ "text/html": blob, "text/plain": plain })])
-          .then(function() { flash("html"); });
-      }
+  document.getElementById('thresholdValue').textContent = threshold;
+  document.getElementById('thresholdUnit').textContent = threshold >= 60 ? ' (' + fmtDuration(threshold) + ')' : '';
 
-      return h("div", {
-        style: {
-          minHeight: "100vh",
-          background: "radial-gradient(ellipse at 30% -10%, #1a1035 0%, " + C.navy + " 55%, #06090f 100%)",
-          fontFamily: "'DM Sans', Arial, sans-serif",
-          color: "#e0e8f0", overflow: "hidden", position: "relative",
+  const totalLines = stats.reduce((a, s) => a + s.lines, 0);
+  const totalActive = stats.reduce((a, s) => a + s.activeSeconds, 0);
+  const avgCadence = totalActive > 0 ? totalLines / (totalActive / 60) : 0;
+
+  const cadences = stats.map(s => s.cadence);
+  const moyIndiv = cadences.length > 0 ? cadences.reduce((a, b) => a + b, 0) / cadences.length : 0;
+
+  document.getElementById('kpiMoyIndiv').textContent = moyIndiv.toFixed(2);
+  document.getElementById('kpiMoyEquipe').textContent = avgCadence.toFixed(2);
+
+  // Moyenne chart
+  if (charts.moyenne) charts.moyenne.destroy();
+  const ctx = document.getElementById('moyenneChart').getContext('2d');
+  const sorted = [...stats].sort((a, b) => b.cadence - a.cadence);
+  const userLabels = sorted.map(s => s.name);
+  const userCadences = sorted.map(s => s.cadence);
+
+  charts.moyenne = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: userLabels,
+      datasets: [
+        {
+          type: 'bar', label: 'Cadence individuelle', data: userCadences,
+          backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4, barPercentage: 0.6, order: 2,
+        },
+        {
+          type: 'line', label: 'Moy. individuelle', data: userLabels.map(() => moyIndiv),
+          borderColor: '#3b82f6', borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
+        },
+        {
+          type: 'line', label: 'Moy. équipe (pondérée)', data: userLabels.map(() => avgCadence),
+          borderColor: '#f97316', borderDash: [6, 4], borderWidth: 2, pointRadius: 0, fill: false, order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'x',
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' }, boxWidth: 12, padding: 12 } },
+        tooltip: {
+          backgroundColor: '#111827', borderColor: '#1e293b', borderWidth: 1, titleColor: '#e2e8f0', bodyColor: '#e2e8f0',
+          titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 },
+          callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' lig/min' }
         }
       },
-        // Grid
-        h("div", {
-          style: {
-            position: "absolute", inset: 0,
-            backgroundImage: "linear-gradient(" + C.purple + "05 1px, transparent 1px), linear-gradient(90deg, " + C.purple + "05 1px, transparent 1px)",
-            backgroundSize: "50px 50px", pointerEvents: "none",
-          }
-        }),
-        // Glow purple
-        h("div", {
-          style: {
-            position: "absolute", top: -250, left: "40%", width: 600, height: 600,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, " + C.purple + "12 0%, transparent 60%)",
-            pointerEvents: "none",
-          }
-        }),
-        // Glow teal
-        h("div", {
-          style: {
-            position: "absolute", bottom: -150, right: -80, width: 400, height: 400,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, " + C.teal + "0a 0%, transparent 60%)",
-            pointerEvents: "none",
-          }
-        }),
-        // Content
-        h("div", {
-          style: {
-            position: "relative", zIndex: 1, maxWidth: 960,
-            margin: "0 auto", padding: "36px 20px",
-          }
-        },
-          // Header
-          h("div", { style: { textAlign: "center", marginBottom: 34 } },
-            h("div", { style: { marginBottom: 6 } },
-              h("span", {
-                style: {
-                  fontSize: 30, fontWeight: 900, letterSpacing: -0.5,
-                  color: "#fff", fontFamily: "Impact, 'Arial Narrow', Arial, sans-serif",
-                }
-              }, "Upp"),
-              h("span", {
-                style: {
-                  fontSize: 30, fontWeight: 900, letterSpacing: -0.5,
-                  color: C.purpleBright, fontFamily: "Impact, 'Arial Narrow', Arial, sans-serif",
-                }
-              }, "li")
-            ),
-            h("div", {
-              style: {
-                display: "inline-block", height: 2, width: 50,
-                background: "linear-gradient(90deg, " + C.teal + ", " + C.purple + ")",
-                marginBottom: 10, borderRadius: 1,
-              }
-            }),
-            h("p", {
-              style: {
-                fontSize: 12, color: C.purpleBright, margin: 0,
-                letterSpacing: 2.5, textTransform: "uppercase", fontWeight: 600,
-              }
-            }, "Générateur de signature")
-          ),
-          // Grid layout
-          h("div", {
-            style: {
-              display: "grid",
-              gridTemplateColumns: "310px minmax(0, 1fr)",
-              gap: 24, alignItems: "start",
-            }
-          },
-            // Form
-            h("div", {
-              style: {
-                background: "linear-gradient(165deg, " + C.navyCard + " 0%, " + C.navyLight + " 100%)",
-                border: "1px solid " + C.border, borderRadius: 14,
-                padding: "22px 20px",
-              }
-            },
-              h("div", {
-                style: {
-                  display: "flex", alignItems: "center", gap: 8,
-                  marginBottom: 18, paddingBottom: 12,
-                  borderBottom: "1px solid " + C.border,
-                }
-              },
-                h("div", {
-                  style: {
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: "linear-gradient(135deg, " + C.teal + ", " + C.purple + ")",
-                    boxShadow: "0 0 8px " + C.purple + "60",
-                  }
-                }),
-                h("span", {
-                  style: {
-                    fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-                    textTransform: "uppercase", color: C.purpleBright,
-                  }
-                }, "Informations")
-              ),
-              h(Field, { label: "Nom complet", value: data.name, onChange: set("name"), placeholder: "Prénom Nom" }),
-              h(Field, { label: "Poste", value: data.title, onChange: set("title"), placeholder: "Partner Consultant" }),
-              h(Field, { label: "Email", value: data.email, onChange: set("email"), placeholder: "prenom.nom@uppli.fr" }),
-              h(Field, { label: "Téléphone", value: data.phone, onChange: set("phone"), placeholder: "+33 (0)6 ..." }),
-              h(Field, { label: "LinkedIn", value: data.linkedin, onChange: set("linkedin"), placeholder: "https://linkedin.com/in/..." }),
-              // Fixed address
-              h("div", {
-                style: {
-                  marginTop: 6, padding: "10px 14px",
-                  background: C.purple + "08", border: "1px solid " + C.purple + "18",
-                  borderRadius: 8, fontSize: 11, color: C.muted,
-                }
-              },
-                h("span", {
-                  style: {
-                    color: C.purpleBright, fontWeight: 700, fontSize: 10,
-                    letterSpacing: 1, textTransform: "uppercase",
-                  }
-                }, "Adresse fixe"),
-                h("br"),
-                h("span", { style: { color: "#8899aa" } }, FIXED_ADDRESS)
-              )
-            ),
-            // Preview side
-            h("div", null,
-              h("div", {
-                style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }
-              },
-                h("div", { style: { width: 8, height: 8, borderRadius: "50%", background: C.muted } }),
-                h("span", {
-                  style: {
-                    fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-                    textTransform: "uppercase", color: C.muted,
-                  }
-                }, "Aperçu")
-              ),
-              // Email mock
-              h("div", {
-                style: {
-                  background: "#fff", borderRadius: 12, overflow: "hidden",
-                  boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px " + C.purple + "12",
-                }
-              },
-                // macOS bar
-                h("div", {
-                  style: {
-                    background: "#f0f2f5", padding: "10px 14px",
-                    borderBottom: "1px solid #e4e6ea",
-                    display: "flex", alignItems: "center", gap: 7,
-                  }
-                },
-                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#ff5f57" } }),
-                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#febc2e" } }),
-                  h("div", { style: { width: 11, height: 11, borderRadius: "50%", background: "#28c840" } }),
-                  h("span", { style: { marginLeft: 12, fontSize: 11, color: "#aaa", fontFamily: "monospace" } }, "Nouveau message")
-                ),
-                // Email fields
-                h("div", {
-                  style: { padding: "10px 20px", borderBottom: "1px solid #f0f0f0", fontSize: 12, color: "#bbb" }
-                },
-                  h("div", { style: { marginBottom: 3 } },
-                    h("span", { style: { color: "#ccc" } }, "À : "),
-                    h("span", { style: { color: "#555" } }, "client@entreprise.com")
-                  ),
-                  h("div", null,
-                    h("span", { style: { color: "#ccc" } }, "Objet : "),
-                    h("span", { style: { color: "#555" } }, "Proposition d'accompagnement")
-                  )
-                ),
-                // Body
-                h("div", { style: { padding: "18px 20px 12px" } },
-                  h("p", { style: { fontSize: 13, color: "#555", margin: "0 0 2px", lineHeight: 1.7 } }, "Bonjour,"),
-                  h("p", { style: { fontSize: 13, color: "#ccc", margin: "0 0 16px", lineHeight: 1.7 } }, "Suite à notre échange, je vous adresse..."),
-                  h("p", { style: { fontSize: 13, color: "#555", margin: "0 0 14px" } }, "Cordialement,"),
-                  h("div", {
-                    ref: previewRef,
-                    style: { borderTop: "1px solid #eee", paddingTop: 14 },
-                    dangerouslySetInnerHTML: { __html: sigHTML(data) },
-                  })
-                )
-              ),
-              // Buttons
-              h("div", { style: { display: "flex", gap: 10, marginTop: 18 } },
-                h("button", {
-                  onClick: doCopy,
-                  style: {
-                    flex: 1, padding: "13px 20px", fontSize: 13, fontWeight: 700,
-                    fontFamily: "'DM Sans', Arial, sans-serif", color: "#fff",
-                    background: "linear-gradient(135deg, " + C.purpleGrad1 + ", " + C.purpleGrad2 + ")",
-                    border: "none", borderRadius: 10, cursor: "pointer",
-                    letterSpacing: 0.5, transition: "transform 0.15s, box-shadow 0.15s",
-                    boxShadow: "0 4px 24px " + C.purple + "40",
-                  },
-                  onMouseEnter: function(e) {
-                    e.target.style.transform = "translateY(-2px)";
-                    e.target.style.boxShadow = "0 8px 32px " + C.purple + "60";
-                  },
-                  onMouseLeave: function(e) {
-                    e.target.style.transform = "translateY(0)";
-                    e.target.style.boxShadow = "0 4px 24px " + C.purple + "40";
-                  },
-                }, copied && copiedType === "gmail" ? "✓  Copié !" : "Copier pour Gmail"),
-                h("button", {
-                  onClick: copyHTML,
-                  style: {
-                    padding: "13px 18px", fontSize: 13, fontWeight: 600,
-                    fontFamily: "'DM Sans', Arial, sans-serif", color: C.muted,
-                    background: "transparent", border: "1.5px solid " + C.border,
-                    borderRadius: 10, cursor: "pointer",
-                    transition: "border-color 0.2s, color 0.2s",
-                  },
-                  onMouseEnter: function(e) { e.target.style.borderColor = C.teal; e.target.style.color = C.teal; },
-                  onMouseLeave: function(e) { e.target.style.borderColor = C.border; e.target.style.color = C.muted; },
-                }, copied && copiedType === "html" ? "✓ Copié" : "</>  HTML")
-              ),
-              // Instructions
-              h("div", {
-                style: {
-                  marginTop: 14, padding: "12px 16px",
-                  background: C.navyCard, border: "1px solid " + C.border,
-                  borderRadius: 10, fontSize: 12, color: C.muted, lineHeight: 1.6,
-                }
-              },
-                h("span", { style: { color: C.teal, fontWeight: 700, fontSize: 11 } }, "GMAIL"),
-                " → Paramètres → Général → Signature → Colle avec Ctrl+V → Enregistrer"
-              )
-            )
-          )
-        )
-      );
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 9, family: 'JetBrains Mono' }, maxRotation: 45 }, grid: { display: false }, border: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' }, callback: v => v.toFixed(1) }, grid: { color: 'rgba(30,41,59,0.5)' }, border: { display: false }, beginAtZero: true }
+      }
     }
+  });
 
-    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-  </script>
+  // Global stats
+  document.getElementById('globalStats').innerHTML = [
+    makeStatCard('Utilisateurs', stats.length, null, '#22d3ee'),
+    makeStatCard('Lignes totales', totalLines.toLocaleString('fr-FR'), null, '#22d3ee'),
+    makeStatCard('Cadence moy.', avgCadence.toFixed(1), 'lignes/min', '#10b981'),
+    makeStatCard('Temps actif total', fmtDuration(totalActive), null, '#f59e0b'),
+  ].join('');
+
+  // Per-user cards (sorted by cadence desc)
+  const container = document.getElementById('usersContainer');
+  container.innerHTML = '';
+
+  sorted.forEach((s, idx) => {
+    const id = 'chart_' + idx;
+    const html =
+      '<div class="user-card">' +
+        '<div class="user-header">' +
+          '<div>' +
+            '<span class="user-name">' + s.name + '</span>' +
+            '<span class="user-time">' + fmtTime(s.firstTime) + ' → ' + fmtTime(s.lastTime) + '</span>' +
+          '</div>' +
+          '<div class="cadence-badge">' + s.cadence.toFixed(1) + ' <span class="unit">lig/min</span></div>' +
+        '</div>' +
+        '<div class="stats-row">' +
+          makeStatCard('Lignes', s.lines.toLocaleString('fr-FR'), null, '#22d3ee') +
+          makeStatCard('Temps actif', fmtDuration(s.activeSeconds), null, '#10b981') +
+          makeStatCard('Pauses', s.pauseCount, fmtDuration(s.pauseSeconds), '#ef4444') +
+        '</div>' +
+        '<div class="chart-box">' +
+          '<div class="chart-title">Distribution des écarts</div>' +
+          '<canvas id="' + id + '" height="180"></canvas>' +
+          '<div class="chart-legend">' +
+            '<span><span class="legend-dot" style="background:#22d3ee"></span> Actif</span>' +
+            '<span><span class="legend-dot" style="background:#ef4444;opacity:0.55"></span> Pause</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    container.insertAdjacentHTML('beforeend', html);
+
+    if (charts[id]) charts[id].destroy();
+    const cctx = document.getElementById(id).getContext('2d');
+    charts[id] = new Chart(cctx, {
+      type: 'bar',
+      data: {
+        labels: s.buckets.map(b => b.label),
+        datasets: [{
+          data: s.buckets.map(b => b.count),
+          backgroundColor: s.buckets.map(b => b.min >= threshold ? 'rgba(239,68,68,0.55)' : 'rgba(34,211,238,0.85)'),
+          borderRadius: 4, barPercentage: 0.7,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#111827', borderColor: '#1e293b', borderWidth: 1, titleColor: '#e2e8f0', bodyColor: '#e2e8f0',
+            titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 },
+            callbacks: { label: ctx => ctx.parsed.y + ' écarts' } }
+        },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } }, grid: { display: false }, border: { color: '#1e293b' } },
+          y: { ticks: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } }, grid: { color: 'rgba(30,41,59,0.5)' }, border: { display: false } }
+        }
+      }
+    });
+  });
+
+  document.getElementById('results').style.display = 'block';
+}
+
+// ── Events ──
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragging'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragging'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragging'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+function handleFile(file) {
+  if (!file) return;
+  const size = (file.size / 1024).toFixed(0);
+  document.getElementById('uploadContent').innerHTML =
+    '<span class="done">✓ ' + file.name + '</span>' +
+    '<span class="change"> — ' + size + ' Ko — chargement...</span>';
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      parsedUsers = parseExcel(e.target.result);
+      if (parsedUsers.length === 0) {
+        document.getElementById('errorBox').innerHTML = '<div class="error-box">Aucun utilisateur trouvé dans le fichier.</div>';
+        document.getElementById('errorBox').style.display = 'block';
+        document.getElementById('uploadContent').innerHTML =
+          '<span class="done">✓ ' + file.name + '</span><span class="change"> — cliquer pour changer</span>';
+        return;
+      }
+      const totalLines = parsedUsers.reduce((a, u) => a + u.times.length, 0);
+      document.getElementById('uploadContent').innerHTML =
+        '<span class="done">✓ ' + file.name + '</span>' +
+        '<span class="change"> — ' + parsedUsers.length + ' utilisateurs, ' + totalLines.toLocaleString('fr-FR') + ' lignes — cliquer pour changer</span>';
+      render(parseInt(document.getElementById('thresholdSlider').value));
+    } catch (err) {
+      document.getElementById('errorBox').innerHTML = '<div class="error-box">Erreur: ' + err.message + '</div>';
+      document.getElementById('errorBox').style.display = 'block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('thresholdSlider').addEventListener('input', e => {
+  if (parsedUsers.length > 0) render(parseInt(e.target.value));
+});
+</script>
 </body>
 </html>
